@@ -1,7 +1,7 @@
 # 版本记录
 
 本文件记录功能增加、修复和兼容性变化。旧版本只保留功能摘要，不再保留对应
-构建附件；当前仓库提供 Windows 1.5.0 和 Android 1.0.0 的源码与下载文件。
+构建附件；当前仓库提供 Windows 1.5.0 和 Android 1.0.1 的源码与下载文件。
 
 ## Windows 桌面版 1.5.0
 
@@ -48,7 +48,7 @@
 - SHA-256：
   `814A2400E602ABD78C08428C8FD8CD51BC4456E239CB79EAFE230FDBC44C9848`
 
-## Android 完整下载器 1.0.0
+## Android 完整下载器 1.0.1
 
 发布批次：`v1.5.0-android-1.0.0`
 
@@ -79,19 +79,28 @@
 
 ### 修复与验证
 
+- 修复 Android 主窗口在 `setContentView` 前应用窗口主题导致的冷启动闪退。
+- 用纯标准库兼容层替换 Android 不可用的 `curl_cffi.requests` 调用。
+- 新增 Android `BitmapFactory` 到 Pillow 的 WebP 解码桥接，解决漫画图片
+  下载后无法解码或转换的问题。
+- 修正 `jmcomic 2.7.7` 的下载器工厂和章节范围参数，并用两话作品完整验证。
+- 加强 ZIP 打包后的中间目录递归清理，避免残留空话目录。
 - 修复 Android 8 上过新的主题属性导致的资源兼容问题。
 - 旋转屏幕时保留下载界面状态，不中断正在进行的下载任务。
 - 通过 Android Lint 检查。
 - 固定使用旧 1.0 APK 相同的调试签名，支持直接覆盖升级。
-- 验证包名 `com.local.comicreader`、versionCode 2、versionName 1.0.0、
+- 验证包名 `com.local.comicreader`、versionCode 3、versionName 1.0.1、
   APK Signature Scheme v2 和双架构原生库。
+- 在 MuMu 模拟器验证冷启动、浅色主题、作品查询、章节范围、浏览入口、
+  WebP 转 PNG 和两话 ZIP 下载。
 
 ### 发布文件
 
 - `JMComic-Android-1.0.0.apk`
-- 大小：`42831890` 字节
+- 说明：Release 附件沿用 1.0 文件名，APK 内部版本为 1.0.1。
+- 大小：`25102365` 字节
 - SHA-256：
-  `D056E790E63AF8BEE421ADCA493355EA8765C2B368A7172E3F56BF14879B270A`
+  `BE715F0475003C1E40FC954FEFE82E4A57612C27BEBA8F79421F7E5155E79D22`
 
 旧附件 `JMComicBrowser-1.0.0-debug.apk` 已从当前版本移除，避免用户继续下载
 只有网页打开功能的旧包。
@@ -99,6 +108,14 @@
 ## 历史功能摘要
 
 以下内容只用于说明之前的演进，不再提供旧版源码包或构建附件。
+
+### Android 1.0.0
+
+- 用内置 Python 的完整下载器替换旧 WebView 外壳。
+- 首次加入作品详情、章节范围、两种命名、多话 ZIP、账号会话、站内浏览和
+  自更新等 Android 功能。
+- 该版本存在部分设备冷启动闪退、网络兼容和 WebP 图片转码问题，已由 1.0.1
+  修复并替换。
 
 ### 1.4.0
 

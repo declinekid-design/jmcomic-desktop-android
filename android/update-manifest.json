@@ -1,7 +1,7 @@
 {
-  "version": "1.0.0",
+  "version": "1.0.1",
   "url": "https://github.com/declinekid-design/jmcomic-desktop-android/releases/download/v1.5.0-android-1.0.0/JMComic-Android-1.0.0.apk",
-  "sha256": "d056e790e63af8bee421adca493355ea8765c2b368a7172e3f56bf14879b270a",
-  "size": 42831890,
-  "notes": "Android 完整下载器 1.0.0，包含作品详情、章节范围下载、车号或漫画名命名、多话 ZIP、账号会话和自更新。"
+  "sha256": "be715f0475003c1e40fc954fefe82e4a57612c27beba8f79421f7e5155e79d22",
+  "size": 25102365,
+  "notes": "Android 完整下载器 1.0.1：修复冷启动闪退、Android 网络兼容和 WebP 图片转码，保留作品详情、章节范围下载、两种命名、多话 ZIP、账号会话、站内浏览与自更新。"
 }

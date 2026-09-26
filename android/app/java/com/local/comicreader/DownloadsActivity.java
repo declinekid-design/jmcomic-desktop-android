@@ -48,8 +48,8 @@ public final class DownloadsActivity extends Activity {
                 this,
                 settings.getString("theme", "system")
         );
-        ThemeUtil.applyWindow(this, dark);
         setContentView(createUi());
+        ThemeUtil.applyWindow(this, dark);
         loadFiles();
     }
 

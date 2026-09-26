@@ -13,8 +13,11 @@ import traceback
 import urllib.parse
 import urllib.request
 import zipfile
+from functools import partial
 from pathlib import Path
 from typing import Any
+
+from android_webp import install_webp_support
 
 
 _EVENTS: queue.Queue[dict[str, Any]] = queue.Queue()
@@ -30,7 +33,7 @@ try:
     import jmcomic
     from jmcomic import JmDownloader, JmModuleConfig
     from jmcomic.jm_task_context import jm_task_context
-    from jmcomic.jm_toolkit import JmcomicText
+    from jmcomic.jm_toolkit import JmImageTool, JmcomicText
 except BaseException as exc:
     _JM_IMPORT_ERROR = exc
     yaml = None
@@ -38,6 +41,7 @@ except BaseException as exc:
     JmDownloader = None
     JmModuleConfig = None
     jm_task_context = None
+    JmImageTool = None
     JmcomicText = None
 
 
@@ -134,6 +138,8 @@ def initialize(config_json: str) -> str:
         _CONFIG.update(config)
         _load_session()
         _require_jmcomic()
+        if JmImageTool is not None:
+            install_webp_support(JmImageTool)
         if JmModuleConfig is not None:
             JmModuleConfig.AFIELD_ADVICE["jm_id"] = (
                 lambda album: f"JM{album.album_id}"
@@ -171,6 +177,30 @@ def _write_json(path: Path, value: Any) -> None:
         encoding="utf-8",
     )
     os.replace(temporary, path)
+
+
+def _prune_empty_directories(root: Path) -> bool:
+    if not root.exists() or not root.is_dir():
+        return False
+    removed = False
+    for path in sorted(
+        root.rglob("*"),
+        key=lambda item: len(item.parts),
+        reverse=True,
+    ):
+        if not path.is_dir():
+            continue
+        try:
+            path.rmdir()
+            removed = True
+        except OSError:
+            pass
+    try:
+        root.rmdir()
+        removed = True
+    except OSError:
+        pass
+    return removed
 
 
 def _load_or_create_key() -> bytes:
@@ -306,7 +336,9 @@ def _build_option(config: dict[str, Any], pack_zip: bool, use_session: bool = Tr
     )
     image_suffix = config.get("image_suffix")
     if image_suffix in ("", "None", "null"):
-        image_suffix = None
+        image_suffix = ".png"
+    if image_suffix == ".webp":
+        image_suffix = ".png"
     if image_suffix not in (None, ".jpg", ".png", ".webp"):
         image_suffix = None
 
@@ -479,7 +511,10 @@ def query_album(query_text: str, config_json: str) -> str:
         return _error(_message(exc), "query")
 
 
-class AndroidDownloader(JmDownloader):
+_BaseDownloader = JmDownloader or object
+
+
+class AndroidDownloader(_BaseDownloader):
     def __init__(self, option, photo_range: tuple[int, int]):
         super().__init__(option)
         self.photo_range = photo_range
@@ -569,9 +604,17 @@ def start_download(config_json: str) -> str:
             if pack_zip:
                 _emit("log", message="下载完成后按当前命名方式打包为 ZIP。")
             option = _build_option(_CONFIG, pack_zip=pack_zip)
-            downloader = AndroidDownloader(option, (start, end))
+            downloader_factory = partial(
+                AndroidDownloader,
+                photo_range=(start, end),
+            )
             with jm_task_context(download_type="album", jm_id=album_id):
-                result = jmcomic.download_album(album_id, option, downloader)
+                result = jmcomic.download_album(
+                    album_id,
+                    option,
+                    downloader_factory,
+                )
+            downloader = result.downloader
             if (
                 pack_zip
                 and bool(_CONFIG.get("delete_after_zip", True))
@@ -581,10 +624,9 @@ def start_download(config_json: str) -> str:
                     option.dir_rule.decide_album_root_dir(result.detail)
                 )
                 try:
-                    if album_root.exists() and not any(album_root.iterdir()):
-                        album_root.rmdir()
+                    if _prune_empty_directories(album_root):
                         _emit("cleaned", path=str(album_root))
-                except OSError:
+                except BaseException:
                     pass
             payload = {
                 "album_id": album_id,
@@ -759,7 +801,7 @@ def check_update(config_json: str) -> str:
         request = urllib.request.Request(
             source_url,
             headers={
-                "User-Agent": "JMComicAndroid/1.0.0",
+                "User-Agent": "JMComicAndroid/1.0.1",
                 "Accept": "application/json, application/octet-stream, */*",
             },
         )
@@ -778,7 +820,7 @@ def check_update(config_json: str) -> str:
         if not re.fullmatch(r"[0-9a-f]{64}", expected_hash):
             raise ValueError("更新清单的 sha256 无效。")
         expected_size = max(int(manifest.get("size") or 0), 0)
-        current = str(config.get("current_version") or "1.0.0")
+        current = str(config.get("current_version") or "1.0.1")
         if _version_key(version) <= _version_key(current):
             _emit("update", message=f"当前已是最新版本 v{current}。")
             return _ok(
@@ -796,7 +838,7 @@ def check_update(config_json: str) -> str:
             url = urllib.parse.urljoin(source_url, url)
         request = urllib.request.Request(
             url,
-            headers={"User-Agent": "JMComicAndroid/1.0.0"},
+            headers={"User-Agent": "JMComicAndroid/1.0.1"},
         )
         _emit("update", message=f"正在下载 v{version} 更新包...")
         try:

@@ -133,18 +133,33 @@ public final class MainActivity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        StartupDiagnostics.record(this, "MainActivity.onCreate begin");
         settings = new AppSettings(this);
         dark = ThemeUtil.isDark(
                 this,
                 settings.getString("theme", "system")
         );
-        ThemeUtil.applyWindow(this, dark);
         setContentView(createUi());
+        ThemeUtil.applyWindow(this, dark);
         styleTree(root);
 
-        python = Python.getInstance().getModule("jmcomic_service");
-        handler.post(pollRunnable);
+        showPreviousCrashIfPresent();
         initializePython();
+        StartupDiagnostics.record(this, "MainActivity.onCreate complete");
+    }
+
+    private void showPreviousCrashIfPresent() {
+        String diagnostics = StartupDiagnostics.read(this);
+        int fatalIndex = diagnostics.lastIndexOf("FATAL");
+        if (fatalIndex < 0) {
+            return;
+        }
+        String detail = diagnostics.substring(fatalIndex);
+        statusView.setText("检测到上次启动闪退，错误信息已写入 startup.log。");
+        appendLog(
+                "上次启动异常：\n"
+                        + detail.substring(0, Math.min(detail.length(), 4000))
+        );
     }
 
     private View createUi() {
@@ -529,6 +544,26 @@ public final class MainActivity extends Activity {
 
     private void initializePython() {
         executor.execute(() -> {
+            try {
+                StartupDiagnostics.record(
+                        this,
+                        "Python.getInstance begin"
+                );
+                python = Python.getInstance().getModule("jmcomic_service");
+                StartupDiagnostics.record(
+                        this,
+                        "Python jmcomic_service loaded"
+                );
+            } catch (Throwable error) {
+                python = null;
+                StartupDiagnostics.record(
+                        this,
+                        "Python startup failed",
+                        error
+                );
+                runOnUiThread(() -> showPythonStartupError(error));
+                return;
+            }
             JSONObject result = callPython(
                     "initialize",
                     settings.pythonConfig().toString()
@@ -536,6 +571,7 @@ public final class MainActivity extends Activity {
             runOnUiThread(() -> {
                 if (result != null && result.optBoolean("ok")) {
                     initialized = true;
+                    handler.post(pollRunnable);
                     statusView.setText("下载核心已就绪。先查询作品，再选择章节范围。");
                     JSONObject data = result.optJSONObject("data");
                     if (data != null) {
@@ -558,6 +594,17 @@ public final class MainActivity extends Activity {
                 }
             });
         });
+    }
+
+    private void showPythonStartupError(Throwable error) {
+        String detail = error == null
+                ? "未知错误"
+                : error.getClass().getSimpleName() + ": " + error.getMessage();
+        String message = "内嵌下载核心启动失败：" + detail;
+        statusView.setText(message);
+        progressView.setText("诊断日志：应用目录中的 startup.log");
+        appendLog(message);
+        toast(message);
     }
 
     private void queryAlbum() {
@@ -1107,7 +1154,7 @@ public final class MainActivity extends Activity {
             }
             String raw = python.callAttr(method, arguments).toString();
             return new JSONObject(raw);
-        } catch (RuntimeException | JSONException error) {
+        } catch (Throwable error) {
             return errorJson(error.getMessage());
         }
     }

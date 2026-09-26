@@ -45,8 +45,6 @@ public final class BrowserActivity extends Activity {
                 this,
                 settings.getString("theme", "system")
         );
-        ThemeUtil.applyWindow(this, dark);
-
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
         root.setBackgroundColor(ThemeUtil.background(dark));
@@ -111,6 +109,7 @@ public final class BrowserActivity extends Activity {
                 1
         ));
         setContentView(root);
+        ThemeUtil.applyWindow(this, dark);
         configureWebView();
 
         if (savedInstanceState == null) {

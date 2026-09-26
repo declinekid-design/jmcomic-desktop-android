@@ -26,7 +26,7 @@ Windows 和 Android 端都基于
 | 平台 | 文件 | 版本 | 说明 |
 | --- | --- | --- | --- |
 | Windows | `JMComicDesktop-1.5.0-portable.zip` | 1.5.0 | 免安装便携版 |
-| Android | `JMComic-Android-1.0.0.apk` | 1.0.0 | Android 8.0+ 完整下载器 |
+| Android | `JMComic-Android-1.0.0.apk` | 1.0.1 | Android 8.0+ 完整下载器 |
 
 Windows 便携包解压后保持整个 `JMComicDesktop` 文件夹完整，然后双击
 `JMComicDesktop.exe`。Android 安装 APK 后可查询详情、选择章节范围并直接下载，
@@ -35,10 +35,12 @@ Windows 便携包解压后保持整个 `JMComicDesktop` 文件夹完整，然后
 Release 页面提供附件 SHA-256；仓库中的 Android APK 固定校验值为：
 
 ```text
-D056E790E63AF8BEE421ADCA493355EA8765C2B368A7172E3F56BF14879B270A
+BE715F0475003C1E40FC954FEFE82E4A57612C27BEBA8F79421F7E5155E79D22
 ```
 
-仓库当前只保留 Windows 1.5.0 和 Android 1.0.0 对应的源码与下载文件。
+Android Release 附件继续使用 `JMComic-Android-1.0.0.apk` 这个稳定文件名，
+用于直接替换旧的 1.0 附件；APK 内部版本已更新为 1.0.1，旧包不再提供。
+仓库当前只保留 Windows 1.5.0 和 Android 1.0.1 对应的源码与下载文件。
 旧版本不再保留对应构建附件，只会在更新记录中说明功能变化。
 
 ## 产品截图
@@ -69,7 +71,7 @@ D056E790E63AF8BEE421ADCA493355EA8765C2B368A7172E3F56BF14879B270A
 | 自更新 | 读取 HTTPS 清单、校验 SHA-256、等待退出、替换程序、失败回滚 |
 | 更新保护 | 不覆盖 `data`、`downloads`、`updater`、预览图和更新文件目录 |
 
-### Android 完整下载器 1.0.0
+### Android 完整下载器 1.0.1
 
 | 功能 | 具体行为 |
 | --- | --- |
@@ -88,6 +90,8 @@ D056E790E63AF8BEE421ADCA493355EA8765C2B368A7172E3F56BF14879B270A
 | 自更新 | 读取仓库 HTTPS 清单，校验 SHA-256 后交给 Android 系统安装器 |
 | 本地数据 | 设置、会话、日志、更新包和下载文件都放在应用自身目录 |
 | 系统兼容 | minSdk 26、targetSdk 35，支持 arm64-v8a 和 x86_64 |
+| 启动修复 | 修复浅色主题初始化顺序导致的冷启动闪退 |
+| 图片兼容 | 使用 Android 原生解码桥接 WebP，下载图片统一转为可用 PNG |
 
 Android 使用 Chaquopy 内置 Python 3.12、`jmcomic 2.7.7` 和相同下载流程。
 应用数据位于 Android 分配给本应用的私有目录，不使用 `%APPDATA%`。
@@ -212,6 +216,9 @@ $env:CHAQUOPY_BUILD_PYTHON = 'C:\path\to\python.exe'
   -OutputApk .\artifacts\JMComic-Android-1.0.0.apk
 ```
 
+正式发布文件沿用 1.0 附件名以便覆盖替换，源码中的
+`versionName` 为 `1.0.1`、`versionCode` 为 `3`。
+
 工具链目录约定：
 
 ```text
@@ -285,7 +292,7 @@ python .\desktop\updater_app.py --self-test
 ## 已知限制
 
 - Windows 构建和便携数据目录以 Windows 为主要目标。
-- Android APK 使用固定调试签名，可覆盖安装同包名的 1.0.0 旧版；正式应用商店
+- Android APK 使用固定调试签名，可覆盖安装同包名的 1.0 旧版；正式应用商店
   发布仍建议改用长期保管的发布证书。
 - Android 自更新会下载并校验 APK，但最终安装必须由系统安装器确认，无法静默
   替换应用。
