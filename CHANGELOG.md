@@ -1,26 +1,91 @@
-# Changelog
+# 版本记录
 
-## 2026-09-26
+本文件记录功能增加、修复和兼容性变化。旧版本只保留功能摘要，不再保留对应
+构建附件；当前仓库提供 Windows 1.5.0 和 Android 1.0.0 的源码与下载文件。
 
-### Windows desktop 1.5.0
+## Windows 桌面版 1.5.0
 
-- Added an embedded browser window for browsing the companion comic site.
-- Added light, dark, and follow-system themes.
-- Added folder naming by comic ID or comic title.
-- Added full album details and chapter start/end selection.
-- Added multi-chapter ZIP output.
-- Added encrypted account session persistence.
-- Added signed manifest based self-update and rollback.
-- Moved runtime data into the application directory instead of `%APPDATA%`.
-- Preserved documentation, license, and source notices during updates.
+发布批次：`v1.5.0-android-1.0.0`
 
-### Android browser 1.0.0
+### 新增功能
 
-- Added a native WebView browser for `https://comic18j-hbd.space/`.
-- Added back, refresh, download history, and image reader screens.
-- Cookies are retained by Android WebView.
-- Downloads are delegated to Android DownloadManager.
-- Built and verified as a debug APK for Android 8.0 and later.
+- 新增顶部“浏览漫画”入口和应用内 Qt WebEngine 浏览器。
+- 浏览器支持前进、后退、刷新、停止、地址栏、主页和系统浏览器打开。
+- 浏览器缓存、Cookie 和登录状态保存在程序目录 `data/browser`。
+- 新增浅色、深色、跟随系统三种主题，解决深色系统下文字不可见问题。
+- 新增“按车号命名”和“按漫画名命名”两种下载结果命名方式。
+- 新增完整的作品详情输出，包括标题、ID、链接、作者、发布日期、更新日期、
+  总页数、观看、点赞、评论、标签、人物、作品和章节列表。
+- 新增章节起止选择，可选择完整章节或任意连续章节范围。
+- 新增多话作品 ZIP：ZIP 内按“第几话 话名”建立多个文件夹。
+- 新增图片格式转换选项：保持原格式、JPG、PNG、WEBP。
+- 新增图片并发、章节并发、接口类型和代理模式设置。
+- 新增下载完成后自动打开保存目录选项。
+- 新增设置页功能说明，降低首次使用门槛。
 
-The Android application does not reuse the Windows desktop downloader or ZIP
-packager.
+### 账号、数据与更新
+
+- 新增账号密码登录弹窗和“保持登录”选项。
+- 会话优先使用 Windows DPAPI 加密，系统不可用时使用程序目录内的
+  AES-GCM 后备密钥。
+- 配置、日志、会话、浏览器缓存和更新文件默认放在程序目录，不使用
+  `%APPDATA%`。
+- 新增 HTTPS 更新清单、SHA-256 校验、独立更新器、失败回滚和更新包路径
+  安全检查。
+- 更新时保留 `data`、`downloads`、`updater`、`预览图` 和 `更新文件`。
+
+### 结构与验证
+
+- 拆分界面、详情格式化、下载器、会话、浏览器、设置、主题和更新模块。
+- 新增桌面端 `--self-test`、`--smoke-test`、`--browser-smoke-test` 自检。
+- 新增独立更新器 `--self-test`。
+- 新增 `SOURCE-1.5.0.txt`，记录当前版本、依赖、许可证和上游来源。
+- 新增产品说明、功能与源码对照、架构说明和发布文档。
+
+### 发布文件
+
+- `JMComicDesktop-1.5.0-portable.zip`
+- SHA-256：
+  `814A2400E602ABD78C08428C8FD8CD51BC4456E239CB79EAFE230FDBC44C9848`
+
+## Android 浏览版 1.0.0
+
+发布批次：`v1.5.0-android-1.0.0`
+
+### 新增功能
+
+- 新增 Android WebView 浏览版，默认打开 `https://comic18j-hbd.space/`。
+- 支持网页登录、Cookie、DOM 存储、数据库和页面缩放。
+- 新增返回、刷新和下载记录工具栏。
+- 网页下载交给 Android DownloadManager，并传递 Cookie、User-Agent 和
+  Referer。
+- 新增下载记录页面，显示等待、下载中、暂停、完成、失败和文件大小。
+- 新增图片顺序阅读页面，可查看当前下载队列中的上一张和下一张图片。
+- 新增网页文件选择器支持。
+- minSdk 26、targetSdk 35，支持 Android 8.0 及以上。
+
+### 发布文件
+
+- `JMComicBrowser-1.0.0-debug.apk`
+- SHA-256：
+  `190AA0B04BCECAD5BCA855012D7DA10BAD55EBC505FC2140131624C673694F7E`
+
+Android 版是浏览器封装，不包含 Windows 桌面端的 Python 下载器、章节范围
+下载或 ZIP 打包逻辑。
+
+## 历史功能摘要
+
+以下内容只用于说明之前的演进，不再提供旧版源码包或构建附件。
+
+### 1.4.0
+
+- 增加账号密码弹窗登录和加密会话保持。
+- 增加更新清单检查、SHA-256 校验、程序替换和失败回滚。
+- 将设置、日志、会话和更新数据迁移到程序目录。
+- 保留作品详情、章节范围和多话 ZIP 打包能力。
+
+### 1.3.0 及更早
+
+- 提供 JMComic 图形化查询和下载。
+- 提供作品详情、章节范围、图片并发和下载目录设置。
+- 提供按车号或漫画名命名、多话 ZIP 打包的早期能力。
