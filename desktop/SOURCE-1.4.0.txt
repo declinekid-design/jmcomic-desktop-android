@@ -1,0 +1,16 @@
+JMComic 桌面版
+
+版本: 1.4.0
+构建日期: 2026-09-26
+界面技术: PySide6 6.8.3
+核心项目: JMComic-Crawler-Python 2.7.7
+核心仓库: https://github.com/hect0x7/JMComic-Crawler-Python
+许可证: MIT
+
+本版本新增:
+- 账号密码弹窗登录，可加密保持服务器会话
+- 更新清单检查、SHA-256 校验、替换及失败回滚
+- 设置、日志、会话、更新下载与备份全部保存在程序目录
+- 保留作品详情、章节范围、ZIP 命名与多话打包功能
+
+本软件是上游 jmcomic Python API 的独立 Windows 图形界面。

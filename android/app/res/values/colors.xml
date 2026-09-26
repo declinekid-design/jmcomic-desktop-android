@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="toolbar_background">#0F5964</color>
+    <color name="screen_background">#FFFFFF</color>
+    <color name="reader_background">#181D1F</color>
+</resources>

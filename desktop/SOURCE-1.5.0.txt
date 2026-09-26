@@ -1,0 +1,16 @@
+JMComic 桌面版
+
+版本: 1.5.0
+构建日期: 2026-09-26
+界面技术: PySide6 6.8.3 + Qt WebEngine
+核心项目: JMComic-Crawler-Python 2.7.7
+核心仓库: https://github.com/hect0x7/JMComic-Crawler-Python
+许可证: MIT
+
+本版本新增:
+- 顶部“浏览漫画”按钮和应用内网页弹窗
+- 网页前进、后退、刷新、停止、地址栏及系统浏览器打开
+- 网页缓存与 Cookie 保存在程序目录 data\browser
+- 保留账号登录、自更新、作品详情、章节范围与多话 ZIP 功能
+
+本软件是上游 jmcomic Python API 的独立 Windows 图形界面。
