@@ -48,30 +48,53 @@
 - SHA-256：
   `814A2400E602ABD78C08428C8FD8CD51BC4456E239CB79EAFE230FDBC44C9848`
 
-## Android 浏览版 1.0.0
+## Android 完整下载器 1.0.0
 
 发布批次：`v1.5.0-android-1.0.0`
 
 ### 新增功能
 
-- 新增 Android WebView 浏览版，默认打开 `https://comic18j-hbd.space/`。
-- 支持网页登录、Cookie、DOM 存储、数据库和页面缩放。
-- 新增返回、刷新和下载记录工具栏。
-- 网页下载交给 Android DownloadManager，并传递 Cookie、User-Agent 和
-  Referer。
-- 新增下载记录页面，显示等待、下载中、暂停、完成、失败和文件大小。
-- 新增图片顺序阅读页面，可查看当前下载队列中的上一张和下一张图片。
-- 新增网页文件选择器支持。
-- minSdk 26、targetSdk 35，支持 Android 8.0 及以上。
+- 用原生 Android 下载器替换旧版 WebView 浏览器壳。
+- 通过 Chaquopy 内置 Python 3.12、`jmcomic 2.7.7`、Pillow、PyYAML 和
+  PyCryptodome，运行与 Windows 端一致的查询和下载流程。
+- 支持车号、`JM编号`、章节号 `p123456` 和作品链接输入。
+- 显示标题、ID、链接、作者、日期、页数、观看、点赞、评论、标签、人物、
+  作品与完整章节列表。
+- 支持选择下载的开始话和结束话，单话作品自动定位到对应章节。
+- 支持按 `JM车号` 或漫画标题命名作品目录与 ZIP。
+- 多话作品打包为一个 ZIP，ZIP 内按“第几话 话名”建立多个文件夹；仅下载一话
+  时不强制打包。
+- 支持原格式、JPG、PNG、WEBP 图片输出。
+- 支持图片并发、章节并发、APP/网页接口和代理方式设置。
+- 新增浅色、深色和跟随系统三种主题，修复深色系统下文字不可见问题。
+- 新增账户密码登录弹窗和“保持登录”；会话使用 AES-GCM 加密后保存在应用目录。
+- 新增“浏览”按钮打开 `https://comic18j-hbd.space/`，同时保留网页登录、
+  Cookie、文件选择和网页下载。
+- 新增结果页面，扫描并打开 ZIP、图片和下载的 APK。
+- 新增 HTTPS 更新清单、SHA-256 校验和 Android 系统安装器自更新流程。
+- 设置、会话、日志、更新包和下载文件均放在应用自身目录，不使用
+  `%APPDATA%`。
+- minSdk 26、targetSdk 35，支持 Android 8.0 及以上，包含 arm64-v8a 和
+  x86_64。
+
+### 修复与验证
+
+- 修复 Android 8 上过新的主题属性导致的资源兼容问题。
+- 旋转屏幕时保留下载界面状态，不中断正在进行的下载任务。
+- 通过 Android Lint 检查。
+- 固定使用旧 1.0 APK 相同的调试签名，支持直接覆盖升级。
+- 验证包名 `com.local.comicreader`、versionCode 2、versionName 1.0.0、
+  APK Signature Scheme v2 和双架构原生库。
 
 ### 发布文件
 
-- `JMComicBrowser-1.0.0-debug.apk`
+- `JMComic-Android-1.0.0.apk`
+- 大小：`42831890` 字节
 - SHA-256：
-  `190AA0B04BCECAD5BCA855012D7DA10BAD55EBC505FC2140131624C673694F7E`
+  `D056E790E63AF8BEE421ADCA493355EA8765C2B368A7172E3F56BF14879B270A`
 
-Android 版是浏览器封装，不包含 Windows 桌面端的 Python 下载器、章节范围
-下载或 ZIP 打包逻辑。
+旧附件 `JMComicBrowser-1.0.0-debug.apk` 已从当前版本移除，避免用户继续下载
+只有网页打开功能的旧包。
 
 ## 历史功能摘要
 

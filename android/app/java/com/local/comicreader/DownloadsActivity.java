@@ -1,277 +1,207 @@
 package com.local.comicreader;
 
 import android.app.Activity;
-import android.app.DownloadManager;
 import android.content.ActivityNotFoundException;
 import android.content.Intent;
-import android.database.Cursor;
 import android.graphics.Color;
-import android.graphics.drawable.ColorDrawable;
+import android.graphics.Typeface;
 import android.net.Uri;
-import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.text.format.Formatter;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.BaseAdapter;
-import android.widget.ImageButton;
+import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.core.content.FileProvider;
+
+import java.io.File;
+import java.text.DateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public final class DownloadsActivity extends Activity {
-    private static final String DESCRIPTION = "漫画助手下载";
-
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
-    private final List<DownloadItem> items = new ArrayList<>();
-    private DownloadAdapter adapter;
+    private final Handler handler = new Handler(Looper.getMainLooper());
+    private final List<File> files = new ArrayList<>();
+    private AppSettings settings;
+    private boolean dark;
+    private FileAdapter adapter;
     private TextView emptyView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        configureWindow();
-        setContentView(createContentView());
-        loadDownloads();
+        settings = new AppSettings(this);
+        dark = ThemeUtil.isDark(
+                this,
+                settings.getString("theme", "system")
+        );
+        ThemeUtil.applyWindow(this, dark);
+        setContentView(createUi());
+        loadFiles();
     }
 
-    private void configureWindow() {
-        getWindow().setStatusBarColor(Color.rgb(15, 89, 100));
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            getWindow().setNavigationBarColor(Color.WHITE);
-            getWindow().getDecorView().setSystemUiVisibility(
-                    View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR
-            );
-        }
-    }
-
-    private View createContentView() {
+    private View createUi() {
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
-        root.setBackgroundColor(Color.WHITE);
+        root.setBackgroundColor(ThemeUtil.background(dark));
 
         LinearLayout toolbar = new LinearLayout(this);
         toolbar.setOrientation(LinearLayout.HORIZONTAL);
         toolbar.setGravity(Gravity.CENTER_VERTICAL);
-        toolbar.setPadding(dp(4), 0, dp(4), 0);
-        toolbar.setBackgroundColor(Color.rgb(15, 89, 100));
-        toolbar.setElevation(dp(6));
+        toolbar.setPadding(dp(8), dp(6), dp(8), dp(6));
+        toolbar.setBackgroundColor(ThemeUtil.accentSoft(dark));
 
-        ImageButton backButton = new ImageButton(this);
-        backButton.setImageResource(R.drawable.ic_arrow_back);
-        backButton.setColorFilter(Color.WHITE);
-        backButton.setContentDescription("返回");
-        backButton.setBackgroundResource(
-                android.R.drawable.list_selector_background
-        );
-        backButton.setPadding(dp(12), dp(12), dp(12), dp(12));
-        backButton.setOnClickListener(view -> finish());
-        toolbar.addView(backButton);
+        Button back = button("返回");
+        back.setOnClickListener(view -> finish());
+        toolbar.addView(back);
 
         TextView title = new TextView(this);
-        title.setText("下载记录");
-        title.setTextColor(Color.WHITE);
+        title.setText("下载结果");
         title.setTextSize(18);
+        title.setTextColor(ThemeUtil.text(dark));
+        title.setTypeface(Typeface.DEFAULT_BOLD);
         title.setGravity(Gravity.CENTER_VERTICAL);
         title.setPadding(dp(8), 0, dp(8), 0);
-        toolbar.addView(
-                title,
-                new LinearLayout.LayoutParams(
-                        0,
-                        ViewGroup.LayoutParams.MATCH_PARENT,
-                        1
-                )
-        );
+        toolbar.addView(title, new LinearLayout.LayoutParams(
+                0,
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                1
+        ));
 
-        ImageButton refreshButton = new ImageButton(this);
-        refreshButton.setImageResource(R.drawable.ic_refresh);
-        refreshButton.setColorFilter(Color.WHITE);
-        refreshButton.setContentDescription("刷新列表");
-        refreshButton.setBackgroundResource(
-                android.R.drawable.list_selector_background
-        );
-        refreshButton.setPadding(dp(12), dp(12), dp(12), dp(12));
-        refreshButton.setOnClickListener(view -> loadDownloads());
-        toolbar.addView(refreshButton);
+        Button refresh = button("刷新");
+        refresh.setOnClickListener(view -> loadFiles());
+        toolbar.addView(refresh);
+        root.addView(toolbar, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                dp(54)
+        ));
 
-        root.addView(
-                toolbar,
-                new LinearLayout.LayoutParams(
-                        ViewGroup.LayoutParams.MATCH_PARENT,
-                        dp(56)
-                )
-        );
+        TextView location = new TextView(this);
+        location.setText(settings.downloadDir().getAbsolutePath());
+        location.setTextSize(12);
+        location.setTextColor(ThemeUtil.muted(dark));
+        location.setTextIsSelectable(true);
+        location.setPadding(dp(14), dp(8), dp(14), dp(4));
+        root.addView(location);
 
         ListView listView = new ListView(this);
-        listView.setDividerHeight(1);
-        listView.setDivider(new ColorDrawable(Color.rgb(222, 226, 229)));
-        adapter = new DownloadAdapter();
+        listView.setDividerHeight(0);
+        adapter = new FileAdapter();
         listView.setAdapter(adapter);
+        listView.setOnItemClickListener((parent, view, position, id) ->
+                openFile(files.get(position))
+        );
+        root.addView(listView, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                0,
+                1
+        ));
 
         emptyView = new TextView(this);
-        emptyView.setText("暂无下载记录");
-        emptyView.setTextColor(Color.rgb(95, 105, 110));
-        emptyView.setTextSize(17);
+        emptyView.setText("暂无 ZIP 或图片结果。\n下载完成后回到本页刷新。");
+        emptyView.setTextSize(15);
+        emptyView.setTextColor(ThemeUtil.muted(dark));
         emptyView.setGravity(Gravity.CENTER);
-
-        LinearLayout listContainer = new LinearLayout(this);
-        listContainer.setOrientation(LinearLayout.VERTICAL);
-        listContainer.addView(
-                listView,
-                new LinearLayout.LayoutParams(
-                        ViewGroup.LayoutParams.MATCH_PARENT,
-                        0,
-                        1
-                )
-        );
-        listContainer.addView(
-                emptyView,
-                new LinearLayout.LayoutParams(
-                        ViewGroup.LayoutParams.MATCH_PARENT,
-                        0,
-                        1
-                )
-        );
-        root.addView(
-                listContainer,
-                new LinearLayout.LayoutParams(
-                        ViewGroup.LayoutParams.MATCH_PARENT,
-                        0,
-                        1
-                )
-        );
-
-        adapter.setListView(listView);
-        listView.setOnItemClickListener((parent, view, position, id) ->
-                openItem(items.get(position))
-        );
+        root.addView(emptyView, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                0,
+                1
+        ));
         return root;
     }
 
-    private void loadDownloads() {
+    private Button button(String text) {
+        Button button = new Button(this);
+        button.setText(text);
+        button.setAllCaps(false);
+        button.setTextSize(13);
+        return button;
+    }
+
+    private void loadFiles() {
         executor.execute(() -> {
-            List<DownloadItem> loaded = queryDownloads();
-            runOnUiThread(() -> {
-                items.clear();
-                items.addAll(loaded);
+            List<File> found = new ArrayList<>();
+            collect(settings.downloadDir(), found, 0);
+            found.sort((left, right) ->
+                    Long.compare(right.lastModified(), left.lastModified())
+            );
+            handler.post(() -> {
+                files.clear();
+                files.addAll(found);
                 adapter.notifyDataSetChanged();
                 emptyView.setVisibility(
-                        items.isEmpty() ? View.VISIBLE : View.GONE
-                );
-                adapter.getListView().setVisibility(
-                        items.isEmpty() ? View.GONE : View.VISIBLE
+                        files.isEmpty() ? View.VISIBLE : View.GONE
                 );
             });
         });
     }
 
-    private List<DownloadItem> queryDownloads() {
-        List<DownloadItem> result = new ArrayList<>();
-        DownloadManager manager = (DownloadManager) getSystemService(
-                DOWNLOAD_SERVICE
-        );
-        DownloadManager.Query query = new DownloadManager.Query();
-        query.setFilterByStatus(
-                DownloadManager.STATUS_PENDING
-                        | DownloadManager.STATUS_RUNNING
-                        | DownloadManager.STATUS_PAUSED
-                        | DownloadManager.STATUS_SUCCESSFUL
-                        | DownloadManager.STATUS_FAILED
-        );
-        try (Cursor cursor = manager.query(query)) {
-            if (cursor == null) {
-                return result;
+    private void collect(File directory, List<File> result, int depth) {
+        if (directory == null || depth > 4) {
+            return;
+        }
+        File[] children = directory.listFiles();
+        if (children == null) {
+            return;
+        }
+        for (File child : children) {
+            if (child.isDirectory()) {
+                collect(child, result, depth + 1);
+                continue;
             }
-            int idColumn = cursor.getColumnIndexOrThrow(
-                    DownloadManager.COLUMN_ID
-            );
-            int titleColumn = cursor.getColumnIndexOrThrow(
-                    DownloadManager.COLUMN_TITLE
-            );
-            int statusColumn = cursor.getColumnIndexOrThrow(
-                    DownloadManager.COLUMN_STATUS
-            );
-            int bytesColumn = cursor.getColumnIndexOrThrow(
-                    DownloadManager.COLUMN_BYTES_DOWNLOADED_SO_FAR
-            );
-            int totalColumn = cursor.getColumnIndexOrThrow(
-                    DownloadManager.COLUMN_TOTAL_SIZE_BYTES
-            );
-            int descriptionColumn = cursor.getColumnIndexOrThrow(
-                    DownloadManager.COLUMN_DESCRIPTION
-            );
-            int mimeColumn = cursor.getColumnIndexOrThrow(
-                    DownloadManager.COLUMN_MEDIA_TYPE
-            );
-
-            while (cursor.moveToNext()) {
-                String description = cursor.getString(descriptionColumn);
-                if (!DESCRIPTION.equals(description)) {
-                    continue;
+            String name = child.getName().toLowerCase(Locale.ROOT);
+            if (name.endsWith(".zip")
+                    || name.endsWith(".jpg")
+                    || name.endsWith(".jpeg")
+                    || name.endsWith(".png")
+                    || name.endsWith(".webp")
+                    || name.endsWith(".gif")
+                    || name.endsWith(".apk")) {
+                result.add(child);
+                if (result.size() >= 500) {
+                    return;
                 }
-                result.add(
-                        new DownloadItem(
-                                cursor.getLong(idColumn),
-                                cursor.getString(titleColumn),
-                                cursor.getInt(statusColumn),
-                                cursor.getLong(bytesColumn),
-                                cursor.getLong(totalColumn),
-                                cursor.getString(mimeColumn)
-                        )
-                );
             }
         }
-        result.sort((left, right) -> Long.compare(right.id, left.id));
-        return result;
     }
 
-    private void openItem(DownloadItem item) {
-        if (item.status != DownloadManager.STATUS_SUCCESSFUL) {
-            Toast.makeText(
-                    this,
-                    "文件尚未下载完成",
-                    Toast.LENGTH_SHORT
-            ).show();
-            return;
+    private void openFile(File file) {
+        String mime;
+        String name = file.getName().toLowerCase(Locale.ROOT);
+        if (name.endsWith(".zip")) {
+            mime = "application/zip";
+        } else if (name.endsWith(".apk")) {
+            mime = "application/vnd.android.package-archive";
+        } else {
+            mime = "image/*";
         }
-
-        DownloadManager manager = (DownloadManager) getSystemService(
-                DOWNLOAD_SERVICE
+        Uri uri = FileProvider.getUriForFile(
+                this,
+                getPackageName() + ".files",
+                file
         );
-        Uri uri = manager.getUriForDownloadedFile(item.id);
-        if (uri == null) {
-            Toast.makeText(
-                    this,
-                    "找不到已下载文件",
-                    Toast.LENGTH_SHORT
-            ).show();
-            return;
-        }
-
-        if (item.mimeType != null && item.mimeType.startsWith("image/")) {
-            startActivity(
-                    new Intent(this, ReaderActivity.class)
-                            .putExtra(ReaderActivity.EXTRA_DOWNLOAD_ID, item.id)
-            );
-            return;
-        }
-
         Intent intent = new Intent(Intent.ACTION_VIEW)
-                .setDataAndType(uri, item.mimeType)
+                .setDataAndType(uri, mime)
                 .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
         try {
             startActivity(intent);
         } catch (ActivityNotFoundException error) {
             Toast.makeText(
                     this,
-                    "没有可打开该文件的应用",
+                    "没有可打开该文件类型的应用。",
                     Toast.LENGTH_LONG
             ).show();
         }
@@ -280,6 +210,7 @@ public final class DownloadsActivity extends Activity {
     @Override
     protected void onDestroy() {
         executor.shutdownNow();
+        handler.removeCallbacksAndMessages(null);
         super.onDestroy();
     }
 
@@ -289,53 +220,20 @@ public final class DownloadsActivity extends Activity {
         );
     }
 
-    private static String statusText(DownloadItem item) {
-        switch (item.status) {
-            case DownloadManager.STATUS_PENDING:
-                return "等待下载";
-            case DownloadManager.STATUS_RUNNING:
-                if (item.totalBytes > 0) {
-                    int percent = (int) (
-                            item.bytesDownloaded * 100 / item.totalBytes
-                    );
-                    return "下载中 " + percent + "%";
-                }
-                return "下载中";
-            case DownloadManager.STATUS_PAUSED:
-                return "已暂停";
-            case DownloadManager.STATUS_SUCCESSFUL:
-                return "已完成";
-            case DownloadManager.STATUS_FAILED:
-                return "下载失败";
-            default:
-                return "未知状态";
-        }
-    }
-
-    private final class DownloadAdapter extends BaseAdapter {
-        private ListView listView;
-
-        void setListView(ListView listView) {
-            this.listView = listView;
-        }
-
-        ListView getListView() {
-            return listView;
-        }
-
+    private final class FileAdapter extends BaseAdapter {
         @Override
         public int getCount() {
-            return items.size();
+            return files.size();
         }
 
         @Override
         public Object getItem(int position) {
-            return items.get(position);
+            return files.get(position);
         }
 
         @Override
         public long getItemId(int position) {
-            return items.get(position).id;
+            return files.get(position).lastModified();
         }
 
         @Override
@@ -343,7 +241,6 @@ public final class DownloadsActivity extends Activity {
             LinearLayout row;
             TextView title;
             TextView details;
-
             if (convertView instanceof LinearLayout) {
                 row = (LinearLayout) convertView;
                 title = (TextView) row.getChildAt(0);
@@ -352,56 +249,31 @@ public final class DownloadsActivity extends Activity {
                 row = new LinearLayout(DownloadsActivity.this);
                 row.setOrientation(LinearLayout.VERTICAL);
                 row.setPadding(dp(16), dp(12), dp(16), dp(12));
-                row.setBackgroundColor(Color.WHITE);
-
+                row.setBackgroundColor(ThemeUtil.surface(dark));
                 title = new TextView(DownloadsActivity.this);
-                title.setTextColor(Color.rgb(32, 44, 48));
-                title.setTextSize(16);
+                title.setTextSize(15);
+                title.setTextColor(ThemeUtil.text(dark));
                 title.setMaxLines(2);
                 row.addView(title);
-
                 details = new TextView(DownloadsActivity.this);
-                details.setTextColor(Color.rgb(95, 105, 110));
-                details.setTextSize(13);
+                details.setTextSize(12);
+                details.setTextColor(ThemeUtil.muted(dark));
                 details.setPadding(0, dp(4), 0, 0);
+                details.setMaxLines(2);
                 row.addView(details);
             }
-
-            DownloadItem item = items.get(position);
-            title.setText(item.title);
-            String size = item.totalBytes > 0
-                    ? Formatter.formatFileSize(
-                            DownloadsActivity.this,
-                            item.totalBytes
-                    )
-                    : "大小未知";
-            details.setText(statusText(item) + " · " + size);
+            File file = files.get(position);
+            title.setText(file.getName());
+            String size = Formatter.formatFileSize(
+                    DownloadsActivity.this,
+                    file.length()
+            );
+            String date = DateFormat.getDateTimeInstance(
+                    DateFormat.SHORT,
+                    DateFormat.SHORT
+            ).format(new Date(file.lastModified()));
+            details.setText(date + " · " + size + "\n" + file.getParent());
             return row;
-        }
-    }
-
-    private static final class DownloadItem {
-        final long id;
-        final String title;
-        final int status;
-        final long bytesDownloaded;
-        final long totalBytes;
-        final String mimeType;
-
-        DownloadItem(
-                long id,
-                String title,
-                int status,
-                long bytesDownloaded,
-                long totalBytes,
-                String mimeType
-        ) {
-            this.id = id;
-            this.title = title == null ? "未命名文件" : title;
-            this.status = status;
-            this.bytesDownloaded = bytesDownloaded;
-            this.totalBytes = totalBytes;
-            this.mimeType = mimeType;
         }
     }
 }

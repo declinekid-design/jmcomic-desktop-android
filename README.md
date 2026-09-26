@@ -1,11 +1,10 @@
 # JMComic Desktop and Android
 
-JMComic Desktop 是一个面向 Windows 的 JMComic 图形化客户端，提供作品检索、
-完整详情查看、章节范围选择、并发下载、ZIP 整理、账号会话、自更新和站内浏览。
-仓库同时包含一个 Android WebView 浏览版，可直接浏览配套站点、查看下载记录和
-顺序阅读已下载图片。
+JMComic Desktop 是一个面向 Windows 和 Android 的 JMComic 图形化下载器，提供
+作品检索、完整详情查看、章节范围选择、并发下载、ZIP 整理、账号会话、自更新
+和站内浏览。Android 版内置 Python 下载核心，不再是只打开网页的 WebView 壳。
 
-桌面端基于
+Windows 和 Android 端都基于
 [hect0x7/JMComic-Crawler-Python](https://github.com/hect0x7/JMComic-Crawler-Python)
 提供的 Python API、下载器和插件系统构建。
 
@@ -27,15 +26,16 @@ JMComic Desktop 是一个面向 Windows 的 JMComic 图形化客户端，提供�
 | 平台 | 文件 | 版本 | 说明 |
 | --- | --- | --- | --- |
 | Windows | `JMComicDesktop-1.5.0-portable.zip` | 1.5.0 | 免安装便携版 |
-| Android | `JMComicBrowser-1.0.0-debug.apk` | 1.0.0 | Android 8.0+ 调试签名包 |
+| Android | `JMComic-Android-1.0.0.apk` | 1.0.0 | Android 8.0+ 完整下载器 |
 
 Windows 便携包解压后保持整个 `JMComicDesktop` 文件夹完整，然后双击
-`JMComicDesktop.exe`。Android 安装 APK 后可直接打开配套站点。
+`JMComicDesktop.exe`。Android 安装 APK 后可查询详情、选择章节范围并直接下载，
+也可以点击“浏览”打开配套站点挑选作品。
 
 Release 页面提供附件 SHA-256；仓库中的 Android APK 固定校验值为：
 
 ```text
-190AA0B04BCECAD5BCA855012D7DA10BAD55EBC505FC2140131624C673694F7E
+D056E790E63AF8BEE421ADCA493355EA8765C2B368A7172E3F56BF14879B270A
 ```
 
 仓库当前只保留 Windows 1.5.0 和 Android 1.0.0 对应的源码与下载文件。
@@ -69,29 +69,38 @@ Release 页面提供附件 SHA-256；仓库中的 Android APK 固定校验值为
 | 自更新 | 读取 HTTPS 清单、校验 SHA-256、等待退出、替换程序、失败回滚 |
 | 更新保护 | 不覆盖 `data`、`downloads`、`updater`、预览图和更新文件目录 |
 
-### Android 浏览版 1.0.0
+### Android 完整下载器 1.0.0
 
 | 功能 | 具体行为 |
 | --- | --- |
-| 默认入口 | 启动后打开 `https://comic18j-hbd.space/` |
-| WebView | 支持网页登录、JavaScript、DOM 存储、Cookie 和页面缩放 |
-| 工具栏 | 提供返回、刷新和下载记录入口 |
-| 下载 | 使用 Android DownloadManager 保存到系统下载目录下的 `ComicReader` |
-| 下载记录 | 展示下载状态、百分比、文件大小，并可打开已下载文件 |
-| 图片阅读 | 对已下载图片提供应用内上一页、下一页阅读 |
-| 文件选择 | 支持网页上传入口和 Android 文件选择器 |
-| 系统兼容 | minSdk 26，支持 Android 8.0 及以上 |
+| 多种输入 | 支持车号、`JM123456`、章节号 `p123456` 和作品链接 |
+| 作品详情 | 显示标题、ID、链接、作者、日期、页数、观看、点赞、评论、标签、人物、作品和章节列表 |
+| 章节范围 | 可查看总话数，并选择从哪一话下载到哪一话 |
+| 两种命名 | 下载结果可按 `JM车号` 或漫画标题命名 |
+| 多话 ZIP | 多话作品打包为一个 ZIP，ZIP 内按“第几话 话名”建立多个文件夹 |
+| 单话下载 | 只下载一话时保留图片文件夹，不额外打包 ZIP |
+| 格式与并发 | 支持原格式、JPG、PNG、WEBP，以及图片和章节并发设置 |
+| 网络设置 | 支持跟随 Android VPN/系统网络、不使用代理或手动代理 |
+| 主题 | 支持浅色、深色和跟随 Android 系统主题 |
+| 账号登录 | 弹窗输入账号密码，可选择保持加密会话 |
+| 站内浏览 | 按钮打开 `https://comic18j-hbd.space/`，支持返回、刷新和网页下载 |
+| 结果管理 | 扫描并打开 ZIP、图片和 APK，显示文件时间、大小和路径 |
+| 自更新 | 读取仓库 HTTPS 清单，校验 SHA-256 后交给 Android 系统安装器 |
+| 本地数据 | 设置、会话、日志、更新包和下载文件都放在应用自身目录 |
+| 系统兼容 | minSdk 26、targetSdk 35，支持 arm64-v8a 和 x86_64 |
 
-Android 版是浏览器封装，不包含 Windows 桌面端的章节范围下载和 ZIP 打包逻辑。
+Android 使用 Chaquopy 内置 Python 3.12、`jmcomic 2.7.7` 和相同下载流程。
+应用数据位于 Android 分配给本应用的私有目录，不使用 `%APPDATA%`。
 
 ## 典型流程
 
-1. 打开桌面端，输入车号、JM 编号、章节号或作品链接。
+1. 打开 Windows 或 Android 客户端，输入车号、JM 编号、章节号或作品链接。
 2. 点击“查询详情”，等待标题、作者、统计信息、标签和章节列表返回。
 3. 在“章节范围”中选择开始章节和结束章节，或点击“全部章节”。
 4. 选择保存目录、车号命名或漫画名命名。
 5. 根据需要设置图片格式、并发、代理，以及是否在多话下载后打包 ZIP。
-6. 点击“开始下载”，在“运行日志”和进度条中查看结果。
+6. 点击“开始下载”，在“运行日志”和进度条中查看结果。Android 版可在“结果”
+   中打开生成的 ZIP 或图片。
 
 ## 下载目录结构
 
@@ -188,16 +197,19 @@ dist/JMComicDesktopUpdater/
 
 构建后可以把 `JMComicDesktopUpdater` 打包进主程序的 `updater` 目录。
 
-### Android 浏览版
+### Android 完整下载器
 
-需要 JDK 17、Android Platform 35、Build-Tools 35.0.0：
+需要 JDK 17、Android Platform 35、Build-Tools 35.0.0 和 Python 3.12。
+Gradle 会自动下载 Chaquopy、`jmcomic` 及 Android 专用依赖：
 
 ```powershell
 $env:ANDROID_TOOLCHAIN_ROOT = 'C:\path\to\android-toolchain'
+$env:CHAQUOPY_BUILD_PYTHON = 'C:\path\to\python.exe'
 
 .\android\scripts\build_apk.ps1 `
   -ToolchainRoot $env:ANDROID_TOOLCHAIN_ROOT `
-  -OutputApk .\android\build\JMComicBrowser-1.0.0-debug.apk
+  -BuildPython $env:CHAQUOPY_BUILD_PYTHON `
+  -OutputApk .\artifacts\JMComic-Android-1.0.0.apk
 ```
 
 工具链目录约定：
@@ -205,10 +217,15 @@ $env:ANDROID_TOOLCHAIN_ROOT = 'C:\path\to\android-toolchain'
 ```text
 android-toolchain/
 ├─ jdk/17.0.16/
-└─ sdk/
-   ├─ platforms/android-35/android.jar
-   └─ build-tools/35.0.0/
+├─ sdk/
+│  ├─ platforms/android-35/android.jar
+│  └─ build-tools/35.0.0/
+├─ gradle-home/
+└─ user-home/
 ```
+
+构建脚本会执行 `assembleDebug` 和 `lintDebug`，复制 APK，调用 `apksigner`
+验证，并输出文件大小与 SHA-256。
 
 ## 源码结构
 
@@ -232,11 +249,14 @@ desktop/
 └─ JMComicDesktop.spec    Windows 打包配置
 
 android/
-├─ app/java/.../MainActivity.java        WebView 主界面和系统下载
-├─ app/java/.../DownloadsActivity.java   下载记录
-├─ app/java/.../ReaderActivity.java      图片顺序阅读
-├─ app/res/                              布局资源、字符串和图标
-└─ scripts/build_apk.ps1                 APK 构建、签名和校验
+├─ app/java/.../MainActivity.java        原生下载器主界面
+├─ app/java/.../BrowserActivity.java     站内浏览按钮打开的 WebView
+├─ app/java/.../DownloadsActivity.java   ZIP、图片和 APK 结果管理
+├─ app/python/jmcomic_service.py         查询、范围下载、登录、ZIP 和更新核心
+├─ app/res/                              主题资源、Manifest 和图标
+├─ gradlew.bat                           Gradle Wrapper
+├─ update-manifest.json                  Android 自更新清单
+└─ scripts/build_apk.ps1                 Gradle + Chaquopy 构建与校验
 
 artifacts/                  已构建 Android APK
 docs/                       产品、源码、发布和截图文档
@@ -265,8 +285,10 @@ python .\desktop\updater_app.py --self-test
 ## 已知限制
 
 - Windows 构建和便携数据目录以 Windows 为主要目标。
-- Android 版目前是 WebView 浏览与系统下载，不是完整离线下载器。
-- Android APK 当前为调试签名，适合测试和直接安装。
+- Android APK 使用固定调试签名，可覆盖安装同包名的 1.0.0 旧版；正式应用商店
+  发布仍建议改用长期保管的发布证书。
+- Android 自更新会下载并校验 APK，但最终安装必须由系统安装器确认，无法静默
+  替换应用。
 - 自动更新只负责替换程序文件，不负责托管或分发内容。
 - 登录功能依赖上游 API 和站点当前行为，站点变更后可能需要适配。
 
@@ -274,6 +296,7 @@ python .\desktop\updater_app.py --self-test
 
 - 仓库不包含账号、密码、Cookie、登录会话、漫画图片或用户下载记录。
 - Windows 版默认把运行数据放在程序目录，不上传用户文件。
+- Android 版把设置、会话、日志、更新包和下载文件放在应用自身目录。
 - 程序仅在用户主动查询、下载、登录和检查更新时访问网络。
 - 本项目仅提供第三方开源 API 的图形界面和技术示例，不托管漫画内容。
 - 请确认你已成年，并确认访问、下载和保存相关内容符合当地法律及站点条款。

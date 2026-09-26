@@ -6,6 +6,5 @@
         <item name="android:windowNoTitle">true</item>
         <item name="android:windowBackground">@color/screen_background</item>
         <item name="android:colorAccent">@color/toolbar_background</item>
-        <item name="android:windowLightNavigationBar">true</item>
     </style>
 </resources>
